@@ -25,6 +25,15 @@ export interface PoolSettings {
   id: number
   submissions_open: boolean
   winner_score: number | null
-  /** Set by the score-sync script. Example: "Tiger Woods −8 (Round 2)" */
+  /** Set by the score-sync script. Example: "Tiger Woods −8 (R2) · 23 entries" */
   round_low_label: string | null
+  /** ISO timestamp of the last successful score sync */
+  last_synced_at: string | null
+}
+
+export interface GolferWithRounds extends Golfer {
+  /** Best single-round score to par (e.g. -8) */
+  best_round_score: number | null
+  /** Which round (1–4) achieved the best score */
+  best_round_num: number | null
 }
