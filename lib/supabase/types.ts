@@ -25,4 +25,6 @@ export interface PoolSettings {
   id: number
   submissions_open: boolean
   winner_score: number | null
+  /** Set by the score-sync script. Example: "Tiger Woods −8 (Round 2)" */
+  round_low_label: string | null
 }
