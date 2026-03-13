@@ -5,18 +5,24 @@ import { EntryForm } from './EntryForm'
 export const metadata = { title: 'Submit Entry · Masters Pool' }
 
 export default async function SubmitPage() {
-  const supabase = await createClient()
+  let golferRows: Golfer[] | null = null
+  let settingsRows: { submissions_open: boolean }[] | null = null
 
-  const [{ data: golferRows }, { data: settingsRows }] = await Promise.all([
-    supabase
-      .from('golfers')
-      .select('id, name, tier, current_score, status')
-      .order('name'),
-    supabase
-      .from('pool_settings')
-      .select('submissions_open')
-      .limit(1),
-  ])
+  try {
+    const supabase = await createClient()
+    ;[{ data: golferRows }, { data: settingsRows }] = await Promise.all([
+      supabase
+        .from('golfers')
+        .select('id, name, tier, current_score, status')
+        .order('name'),
+      supabase
+        .from('pool_settings')
+        .select('submissions_open')
+        .limit(1),
+    ])
+  } catch (err) {
+    console.error('[SubmitPage] Supabase error:', err)
+  }
 
   const settings = settingsRows?.[0]
   if (!settings?.submissions_open) {
