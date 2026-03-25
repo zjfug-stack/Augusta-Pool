@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import type { Golfer, PoolSettings } from '@/lib/supabase/types'
-import { updateGolfer, updatePoolSettings } from './actions'
+import { updateGolfer, updatePoolSettings, seedField } from './actions'
 import { formatScore } from '@/lib/scoring'
 
 // ─── Pool settings section ────────────────────────────────────────────────────
@@ -207,6 +207,49 @@ function GolferRow({ golfer }: { golfer: Golfer }) {
   )
 }
 
+// ─── Seed field card ──────────────────────────────────────────────────────────
+
+function SeedFieldCard() {
+  const [isPending, startTransition] = useTransition()
+  const [result, setResult] = useState<{ error?: string; count?: number } | null>(null)
+
+  const handleSeed = () => {
+    setResult(null)
+    startTransition(async () => {
+      const res = await seedField()
+      setResult(res)
+      if (!res.error) {
+        // Reload after a brief pause so the golfer list populates
+        setTimeout(() => window.location.reload(), 800)
+      }
+    })
+  }
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
+      <div className="text-4xl mb-3">⛳</div>
+      <h3 className="text-base font-semibold text-gray-700 mb-1">No golfers in the database yet</h3>
+      <p className="text-sm text-gray-500 mb-5">
+        Seed the 2026 Masters field (75 players across 6 tiers) to open submissions.
+        You can also run <code className="bg-gray-100 px-1 rounded text-xs">seed_field.py</code> for live rankings.
+      </p>
+      {result?.error && (
+        <p className="text-red-600 text-sm mb-4">{result.error}</p>
+      )}
+      {result?.count && !result.error && (
+        <p className="text-green-600 text-sm mb-4">Seeded {result.count} golfers — reloading…</p>
+      )}
+      <button
+        onClick={handleSeed}
+        disabled={isPending}
+        className="px-6 py-2.5 bg-masters-green text-white font-semibold rounded-full hover:opacity-90 disabled:opacity-50 transition-opacity text-sm"
+      >
+        {isPending ? 'Seeding…' : 'Seed 2026 Masters Field'}
+      </button>
+    </div>
+  )
+}
+
 // ─── Main panel ───────────────────────────────────────────────────────────────
 
 export function AdminPanel({
@@ -223,12 +266,7 @@ export function AdminPanel({
       <PoolSettingsCard settings={poolSettings} />
 
       {golfers.length === 0 ? (
-        <div className="bg-white rounded-xl border border-gray-200 p-8 text-center">
-          <p className="text-gray-500 text-sm mb-2">No golfers in the database yet.</p>
-          <p className="text-xs text-gray-400">
-            Run the seed script (Prompt 6) to populate the field, then refresh.
-          </p>
-        </div>
+        <SeedFieldCard />
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
           <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
