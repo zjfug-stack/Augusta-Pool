@@ -10,7 +10,10 @@ export const dynamic = 'force-dynamic'
 
 export default async function AdminPage() {
   const jar = await cookies()
-  const isAuth = jar.get('admin_auth')?.value === process.env.ADMIN_PASSWORD
+  // Guard against undefined ADMIN_PASSWORD (would make any visitor appear authenticated)
+  const adminPassword = process.env.ADMIN_PASSWORD
+  const isAuth =
+    !!adminPassword && jar.get('admin_auth')?.value === adminPassword
 
   if (!isAuth) {
     return (
@@ -41,23 +44,30 @@ export default async function AdminPage() {
     )
   }
 
-  const supabase = await createClient()
-  const [{ data: golferRows }, { data: settingsRows }] = await Promise.all([
-    supabase
-      .from('golfers')
-      .select('id, name, tier, current_score, status')
-      .order('tier')
-      .order('name'),
-    supabase.from('pool_settings').select('*').limit(1),
-  ])
-
-  const golfers = (golferRows ?? []) as Golfer[]
-  const settings = (settingsRows?.[0] ?? {
+  let golfers: Golfer[] = []
+  let settings: PoolSettings = {
     id: 1,
     submissions_open: true,
     winner_score: null,
     round_low_label: null,
-  }) as PoolSettings
+    last_synced_at: null,
+  }
+
+  try {
+    const supabase = await createClient()
+    const [{ data: golferRows }, { data: settingsRows }] = await Promise.all([
+      supabase
+        .from('golfers')
+        .select('id, name, tier, current_score, status')
+        .order('tier')
+        .order('name'),
+      supabase.from('pool_settings').select('*').limit(1),
+    ])
+    golfers = (golferRows ?? []) as Golfer[]
+    if (settingsRows?.[0]) settings = settingsRows[0] as PoolSettings
+  } catch (err) {
+    console.error('[AdminPage] Supabase error:', err)
+  }
 
   return (
     <div>
