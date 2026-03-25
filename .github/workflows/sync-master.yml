@@ -1,0 +1,30 @@
+name: Sync fixes to master (Vercel production)
+
+on:
+  push:
+    branches:
+      - 'claude/**'
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fast-forward master to match current branch
+        run: |
+          CURRENT_BRANCH="${{ github.ref_name }}"
+          git checkout master || git checkout -b master origin/master
+          git merge --ff-only "origin/$CURRENT_BRANCH"
+          git push origin master
