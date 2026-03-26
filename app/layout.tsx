@@ -33,6 +33,12 @@ export default function RootLayout({
                 Leaderboard
               </Link>
               <Link
+                href="/rules"
+                className="text-sm font-medium text-white/80 hover:text-white transition-colors"
+              >
+                Rules
+              </Link>
+              <Link
                 href="/submit"
                 className="text-sm font-semibold bg-masters-gold text-white px-4 py-1.5 rounded-full hover:opacity-90 transition-opacity"
               >
