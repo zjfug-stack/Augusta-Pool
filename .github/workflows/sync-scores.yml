@@ -1,0 +1,35 @@
+name: Sync Masters scores (every 5 min)
+
+# Fires every 5 minutes during Masters week.
+# GitHub Actions schedules aren't exact — expect ±2 min variance.
+# Outside April 7–15 the endpoint returns {skipped:true} (date-gated).
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:   # allow manual run from GitHub Actions UI
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Call sync-scores endpoint
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          SITE_URL: ${{ secrets.SITE_URL }}
+        run: |
+          URL="${SITE_URL:-https://augusta-pool.vercel.app}/api/cron/sync-scores?force=1"
+          echo "Calling $URL"
+          RESPONSE=$(curl -s -w "\n%{http_code}" \
+            -H "Authorization: Bearer $CRON_SECRET" \
+            "$URL")
+          BODY=$(echo "$RESPONSE" | head -n -1)
+          STATUS=$(echo "$RESPONSE" | tail -n 1)
+          echo "HTTP $STATUS"
+          echo "$BODY"
+          # Fail the step if HTTP error (not 200/skipped)
+          if [ "$STATUS" -ge 500 ]; then
+            echo "Sync returned HTTP $STATUS — treating as failure"
+            exit 1
+          fi
