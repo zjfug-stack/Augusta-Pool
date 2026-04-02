@@ -1,28 +1,58 @@
-import Link from 'next/link';
+import Link from 'next/link'
+import { createClient } from '@/lib/supabase/server'
 
-export default function RulesPage() {
+export const metadata = { title: 'Rules · Masters Pool' }
+export const revalidate = 300 // revalidate every 5 minutes
+
+async function getRulesConfig() {
+  try {
+    const supabase = await createClient()
+    const { data } = await supabase
+      .from('pool_settings')
+      .select('venmo_handle, entry_fee, submission_deadline, submissions_open')
+      .limit(1)
+      .single()
+    return {
+      venmoHandle: data?.venmo_handle ?? '@test-venmo',
+      entryFee: data?.entry_fee ?? 20,
+      submissionDeadline: data?.submission_deadline ?? '7 PM CT · Wednesday, April 8th',
+      submissionsOpen: data?.submissions_open ?? false,
+    }
+  } catch {
+    return {
+      venmoHandle: '@test-venmo',
+      entryFee: 20,
+      submissionDeadline: '7 PM CT · Wednesday, April 8th',
+      submissionsOpen: false,
+    }
+  }
+}
+
+export default async function RulesPage() {
+  const { venmoHandle, entryFee, submissionDeadline, submissionsOpen } = await getRulesConfig()
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-green-900 to-green-800">
       <div className="max-w-3xl mx-auto px-4 py-12">
         <h1 className="text-4xl font-bold text-white text-center mb-2">Pool Rules</h1>
-        <p className="text-green-300 text-center mb-8">89th Masters Tournament · April 9–13, 2026</p>
+        <p className="text-green-300 text-center mb-8">89th Masters Tournament · April 10–13, 2025</p>
 
         {/* Payment Banner */}
         <div className="bg-green-700 border border-green-500 rounded-xl p-6 mb-8 text-center">
           <p className="text-green-200 text-sm uppercase tracking-widest mb-1">Entry Fee</p>
-          <p className="text-5xl font-bold text-white mb-3">$20</p>
+          <p className="text-5xl font-bold text-white mb-3">${entryFee}</p>
           <p className="text-green-200 text-sm mb-1">Send payment via Venmo to</p>
-          <p className="text-2xl font-semibold text-yellow-300">@test-venmo</p>
-          <p className="text-green-300 text-xs mt-2">Deadline: 7 PM CT · Wednesday, April 8th</p>
+          <p className="text-2xl font-semibold text-yellow-300">{venmoHandle}</p>
+          <p className="text-green-300 text-xs mt-2">Deadline: {submissionDeadline}</p>
         </div>
 
         {/* Entry & Payment */}
         <section className="bg-white/10 backdrop-blur rounded-xl p-6 mb-6">
           <h2 className="text-xl font-bold text-white mb-3">Entry &amp; Payment</h2>
           <ul className="space-y-2 text-green-100 text-sm">
-            <li>• Entry fee is <strong className="text-white">$20 per team</strong></li>
-            <li>• Send payment via Venmo to <strong className="text-yellow-300">@test-venmo</strong> before the deadline</li>
-            <li>• Deadline to submit your picks: <strong className="text-white">7 PM CT on Wednesday, April 8th</strong></li>
+            <li>• Entry fee is <strong className="text-white">${entryFee} per team</strong></li>
+            <li>• Send payment via Venmo to <strong className="text-yellow-300">{venmoHandle}</strong> before the deadline</li>
+            <li>• Deadline to submit your picks: <strong className="text-white">{submissionDeadline}</strong></li>
             <li>• Late or unpaid entries will not be accepted</li>
           </ul>
         </section>
@@ -35,7 +65,7 @@ export default function RulesPage() {
             <li>• Your team score = the combined 4-round total of all 6 golfers</li>
             <li>• <strong className="text-white">Lowest score wins</strong> (this is golf!)</li>
             <li>• Also guess the <strong className="text-white">winning score</strong> — used as a tiebreaker</li>
-            <li>• Multiple entries allowed — each costs an additional $20</li>
+            <li>• Multiple entries allowed — each costs an additional ${entryFee}</li>
           </ul>
         </section>
 
@@ -45,7 +75,7 @@ export default function RulesPage() {
           <ul className="space-y-2 text-green-100 text-sm">
             <li>• <strong className="text-white">Missed Cut:</strong> A golfer who misses the cut will have their 36-hole score frozen. They will not receive scores for the weekend rounds.</li>
             <li>• <strong className="text-white">Withdrawal / DQ after teeing off Thursday:</strong> The entire team is disqualified.</li>
-            <li>• <strong className="text-white">Withdrawal before Thursday's first tee shot:</strong> You may substitute a golfer within the same tier, subject to commissioner approval.</li>
+            <li>• <strong className="text-white">Withdrawal before Thursday&apos;s first tee shot:</strong> You may substitute a golfer within the same tier, subject to commissioner approval.</li>
           </ul>
         </section>
 
@@ -54,7 +84,7 @@ export default function RulesPage() {
           <h2 className="text-xl font-bold text-white mb-3">Tiebreakers</h2>
           <p className="text-green-200 text-sm mb-3">If two or more teams finish with the same score, tiebreakers are applied in this order:</p>
           <ol className="space-y-2 text-green-100 text-sm list-none">
-            <li className="flex gap-3"><span className="text-yellow-300 font-bold">1.</span> Closest guess to the tournament winner's final score</li>
+            <li className="flex gap-3"><span className="text-yellow-300 font-bold">1.</span> Closest guess to the tournament winner&apos;s final score</li>
             <li className="flex gap-3"><span className="text-yellow-300 font-bold">2.</span> Lowest score from Tier 6 golfer</li>
             <li className="flex gap-3"><span className="text-yellow-300 font-bold">3.</span> Lowest score from Tier 3 golfer</li>
             <li className="flex gap-3"><span className="text-yellow-300 font-bold">4.</span> Lowest score from Tier 4 golfer</li>
@@ -86,15 +116,17 @@ export default function RulesPage() {
         </section>
 
         {/* CTA */}
-        <div className="text-center mt-8">
-          <Link
-            href="/submit"
-            className="inline-block bg-yellow-500 hover:bg-yellow-400 text-green-900 font-bold py-3 px-8 rounded-full text-lg transition-colors"
-          >
-            Submit Your Entry →
-          </Link>
-        </div>
+        {submissionsOpen && (
+          <div className="text-center mt-8">
+            <Link
+              href="/submit"
+              className="inline-block bg-yellow-500 hover:bg-yellow-400 text-green-900 font-bold py-3 px-8 rounded-full text-lg transition-colors"
+            >
+              Submit Your Entry →
+            </Link>
+          </div>
+        )}
       </div>
     </div>
-  );
+  )
 }

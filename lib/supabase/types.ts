@@ -29,6 +29,12 @@ export interface PoolSettings {
   round_low_label: string | null
   /** ISO timestamp of the last successful score sync */
   last_synced_at: string | null
+  /** Venmo handle shown on rules page (e.g. "@yourname") */
+  venmo_handle: string
+  /** Entry fee in dollars */
+  entry_fee: number
+  /** Deadline text shown on rules page */
+  submission_deadline: string
 }
 
 export interface GolferWithRounds extends Golfer {

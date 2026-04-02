@@ -51,38 +51,39 @@ export default async function AdminPage() {
     winner_score: null,
     round_low_label: null,
     last_synced_at: null,
+    venmo_handle: '@test-venmo',
+    entry_fee: 20,
+    submission_deadline: '7 PM CT · Wednesday, April 8th',
   }
+  let entryCount = 0
 
   try {
     const supabase = await createClient()
-    const [{ data: golferRows }, { data: settingsRows }] = await Promise.all([
+    const [{ data: golferRows }, { data: settingsRows }, { count }] = await Promise.all([
       supabase
         .from('golfers')
         .select('id, name, tier, current_score, status')
         .order('tier')
         .order('name'),
       supabase.from('pool_settings').select('*').limit(1),
+      supabase.from('entries').select('id', { count: 'exact', head: true }),
     ])
     golfers = (golferRows ?? []) as Golfer[]
     if (settingsRows?.[0]) settings = settingsRows[0] as PoolSettings
+    entryCount = count ?? 0
   } catch (err) {
     console.error('[AdminPage] Supabase error:', err)
   }
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-masters-green">Admin Panel</h1>
-        <form action="/admin/logout" method="POST">
-          <a
-            href="/admin/logout"
-            className="text-sm text-gray-500 hover:text-gray-700 underline"
-          >
-            Log out
-          </a>
-        </form>
+      <div className="mb-5 flex items-center justify-between">
+        <h1 className="text-xl font-bold text-masters-green">Admin</h1>
+        <a href="/admin/logout" className="text-sm text-gray-400 hover:text-gray-600">
+          Log out
+        </a>
       </div>
-      <AdminPanel golfers={golfers} poolSettings={settings} />
+      <AdminPanel golfers={golfers} poolSettings={settings} entryCount={entryCount} />
     </div>
   )
 }

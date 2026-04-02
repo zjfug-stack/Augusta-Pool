@@ -207,3 +207,35 @@ export async function updatePoolSettings(data: {
   revalidatePath('/admin')
   return {}
 }
+
+export async function updateRulesConfig(data: {
+  venmo_handle: string
+  entry_fee: number
+  submission_deadline: string
+}): Promise<{ error?: string }> {
+  await requireAdmin()
+  const supabase = createAdminClient()
+  const { error } = await supabase.from('pool_settings').update(data).eq('id', 1)
+
+  if (error) return { error: error.message }
+  revalidatePath('/rules')
+  revalidatePath('/admin')
+  return {}
+}
+
+// ─── Score reset ─────────────────────────────────────────────────────────────
+
+export async function resetAllScores(): Promise<{ error?: string; count?: number }> {
+  await requireAdmin()
+  const supabase = createAdminClient()
+  const { error, data } = await supabase
+    .from('golfers')
+    .update({ current_score: 0, status: 'active', best_round_score: null, best_round_num: null })
+    .neq('id', 0)  // matches all rows
+    .select('id')
+
+  if (error) return { error: error.message }
+  revalidatePath('/')
+  revalidatePath('/admin')
+  return { count: data?.length ?? 0 }
+}
