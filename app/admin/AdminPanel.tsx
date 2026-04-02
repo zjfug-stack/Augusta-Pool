@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react'
 import type { Golfer, PoolSettings } from '@/lib/supabase/types'
-import { updateGolfer, updatePoolSettings, seedField } from './actions'
+import { updateGolfer, updatePoolSettings, seedField, triggerScoreSync } from './actions'
 import { formatScore } from '@/lib/scoring'
 
 // ─── Pool settings section ────────────────────────────────────────────────────
@@ -252,6 +252,46 @@ function SeedFieldCard() {
 
 // ─── Main panel ───────────────────────────────────────────────────────────────
 
+// ─── Manual sync button ───────────────────────────────────────────────────────
+
+function SyncScoresButton() {
+  const [isPending, startTransition] = useTransition()
+  const [result, setResult] = useState<string | null>(null)
+
+  const handleSync = () => {
+    setResult(null)
+    startTransition(async () => {
+      const res = await triggerScoreSync()
+      if (res.error) {
+        setResult(`Error: ${res.error}`)
+      } else if (res.skipped) {
+        setResult(`Skipped — ${res.reason}`)
+      } else {
+        setResult(`Done — ${res.changed ?? 0} score(s) updated (${res.total ?? 0} ESPN players)`)
+      }
+    })
+  }
+
+  return (
+    <div className="flex items-center gap-3 flex-wrap">
+      <button
+        onClick={handleSync}
+        disabled={isPending}
+        className="px-4 py-1.5 bg-masters-green text-white text-sm font-semibold rounded-full hover:opacity-90 disabled:opacity-50 transition-opacity"
+      >
+        {isPending ? 'Syncing…' : 'Sync Scores Now'}
+      </button>
+      {result && (
+        <span className={`text-xs ${result.startsWith('Error') ? 'text-red-600' : 'text-gray-500'}`}>
+          {result}
+        </span>
+      )}
+    </div>
+  )
+}
+
+// ─── Main panel ───────────────────────────────────────────────────────────────
+
 export function AdminPanel({
   golfers,
   poolSettings,
@@ -269,9 +309,12 @@ export function AdminPanel({
         <SeedFieldCard />
       ) : (
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="px-5 py-3.5 border-b border-gray-100 flex items-center justify-between">
-            <h2 className="text-base font-bold text-masters-green">Golfers</h2>
-            <span className="text-xs text-gray-400">{golfers.length} players</span>
+          <div className="px-5 py-3.5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-3">
+              <h2 className="text-base font-bold text-masters-green">Golfers</h2>
+              <span className="text-xs text-gray-400">{golfers.length} players</span>
+            </div>
+            <SyncScoresButton />
           </div>
 
           {tiers.map((tier) => {

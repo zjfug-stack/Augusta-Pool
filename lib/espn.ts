@@ -190,19 +190,49 @@ export function parseLeaderboard(html: string): ESPNGolfer[] {
  * Match a DB golfer name to an ESPN player by last name.
  * Handles the common case where name formatting differs slightly between sources.
  * Returns null if no confident match is found.
+ *
+ * Matching order:
+ *   1. Exact full-name match
+ *   2. Unique last-name match (only one player with that last name)
+ *   3. First + last name match when multiple share the same last name
+ *      (handles Si Woo Kim vs Tom Kim, Min Woo Lee vs K.H. Lee, etc.)
  */
 export function matchByLastName(
   dbName: string,
   espnPlayers: ESPNGolfer[]
 ): ESPNGolfer | null {
-  const dbLast = dbName.split(' ').pop()!.toLowerCase()
+  // 1. Exact full-name match first
+  const exact = espnPlayers.find((p) => p.name === dbName)
+  if (exact) return exact
 
-  // Exact last-name match
+  const dbParts = dbName.split(' ')
+  const dbLast = dbParts[dbParts.length - 1].toLowerCase()
+
+  // 2. Filter by last name
   const matches = espnPlayers.filter(
     (p) => p.name.split(' ').pop()!.toLowerCase() === dbLast
   )
+
   if (matches.length === 1) return matches[0]
 
-  // Fall back to full-name exact match
-  return espnPlayers.find((p) => p.name === dbName) ?? null
+  // 3. Multiple share the same last name — compare by first name too
+  if (matches.length > 1) {
+    const dbFirst = dbParts[0].toLowerCase()
+    const firstMatch = matches.find(
+      (p) => p.name.split(' ')[0].toLowerCase() === dbFirst
+    )
+    if (firstMatch) return firstMatch
+
+    // Try matching both first and second word (e.g. "Si Woo" vs "Si")
+    if (dbParts.length >= 3) {
+      const dbFirstTwo = dbParts.slice(0, 2).join(' ').toLowerCase()
+      const twoWordMatch = matches.find((p) => {
+        const espnParts = p.name.split(' ')
+        return espnParts.slice(0, 2).join(' ').toLowerCase() === dbFirstTwo
+      })
+      if (twoWordMatch) return twoWordMatch
+    }
+  }
+
+  return null
 }

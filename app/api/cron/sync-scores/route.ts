@@ -22,9 +22,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // ── Date gate ─────────────────────────────────────────────────────────────
+  // ── Date gate — bypass when ?force=1 is passed (for manual admin trigger) ─
+  const force = req.nextUrl.searchParams.get('force') === '1'
   const now = new Date()
-  if (now < WINDOW_START || now > WINDOW_END) {
+  if (!force && (now < WINDOW_START || now > WINDOW_END)) {
     return NextResponse.json({
       skipped: true,
       reason: 'Outside Masters week window',
@@ -53,9 +54,11 @@ export async function GET(req: NextRequest) {
 
   // ── Fetch DB golfers ──────────────────────────────────────────────────────
   const supabase = createAdminClient()
+  // Use select('*') so this works even if migration 003 hasn't been run
+  // (best_round_score / best_round_num may not exist yet)
   const { data: dbGolfers, error: fetchErr } = await supabase
     .from('golfers')
-    .select('id, name, current_score, status, best_round_score, best_round_num')
+    .select('*')
 
   if (fetchErr) {
     console.error('[sync-scores] DB fetch error:', fetchErr)

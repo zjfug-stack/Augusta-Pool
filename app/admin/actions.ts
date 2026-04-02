@@ -54,6 +54,38 @@ export async function updateGolfer(
   return {}
 }
 
+// ─── Manual score sync ───────────────────────────────────────────────────────
+
+export async function triggerScoreSync(): Promise<{
+  error?: string
+  changed?: number
+  total?: number
+  skipped?: boolean
+  reason?: string
+}> {
+  await requireAdmin()
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret) return { error: 'CRON_SECRET env var is not set' }
+
+  const baseUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ||
+    process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : 'http://localhost:3000'
+
+  try {
+    const res = await fetch(`${baseUrl}/api/cron/sync-scores?force=1`, {
+      headers: { Authorization: `Bearer ${cronSecret}` },
+      cache: 'no-store',
+    })
+    const json = await res.json()
+    if (!res.ok) return { error: json.error ?? `HTTP ${res.status}` }
+    return json
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Fetch failed' }
+  }
+}
+
 // ─── Field seeding ───────────────────────────────────────────────────────────
 
 const MASTERS_2026_FIELD: { name: string; tier: 1 | 2 | 3 | 4 | 5 | 6 }[] = [
